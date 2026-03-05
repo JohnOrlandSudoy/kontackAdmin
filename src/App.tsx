@@ -44,7 +44,7 @@ interface Stats {
 }
 
 function Login({ onSuccess }: { onSuccess: () => void }) {
-	const [email, setEmail] = useState('admin@kontactshare.com');
+	const [email, setEmail] = useState('admin@tapboss.card');
 	const [password, setPassword] = useState('Admin@123');
 	const [error, setError] = useState<string>('');
 	const [loading, setLoading] = useState(false);
@@ -68,11 +68,11 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
 			<div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
 				<div className="text-center mb-8">
-					<div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-						<Shield className="w-8 h-8 text-white" />
+					<div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
+						<img src="/tapbos.png" alt="TapBoss Logo" className="w-full h-full object-contain" />
 					</div>
 					<h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
-					<p className="text-gray-600 mt-2">Sign in to manage KontactShare profiles</p>
+					<p className="text-gray-600 mt-2">Sign in to manage TapBoss profiles</p>
 				</div>
 				
 				<form onSubmit={handleSubmit} className="space-y-6">
@@ -383,7 +383,7 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 		id: '',
 		pin: '',
 		uniqueCode: '',
-		profilePhoto: '/uploads/kontacksharelogo.png',
+		profilePhoto: '/uploads/tapbos.png',
 		fullName: 'Default Name',
 		email: 'default@example.com',
 		jobTitle: 'Default Job Title',
@@ -1099,7 +1099,7 @@ function ProfileViewModal({ isOpen, onClose, profile }: {
 					<div className="flex items-center justify-between">
 						<div className="flex items-center space-x-4">
 							<div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-								{profile.profilePhoto && profile.profilePhoto !== '/kontacksharelogo.png' ? (
+								{profile.profilePhoto && profile.profilePhoto !== '/uploads/tapbos.png' ? (
 									<img 
 										src={profile.profilePhoto} 
 										alt="Profile" 
@@ -1107,9 +1107,9 @@ function ProfileViewModal({ isOpen, onClose, profile }: {
 									/>
 								) : (
 									<img 
-										src="/uploads/kontacksharelogo.png" 
+										src="/uploads/tapbos.png" 
 										alt="Default Profile" 
-										className="w-16 h-16 rounded-full object-cover"
+										className="w-16 h-16 rounded-full object-contain bg-white p-1"
 									/>
 								)}
 							</div>
@@ -1451,10 +1451,8 @@ function Dashboard() {
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="flex items-center justify-between h-16">
 						<div className="flex items-center space-x-4">
-							<div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-								<Shield className="w-5 h-5 text-white" />
-							</div>
-							<h1 className="text-xl font-semibold text-gray-900">KontactShare Admin</h1>
+							
+							<h1 className="text-xl font-bold text-gray-900">TapBoss Admin</h1>
 						</div>
 						
 						<div className="flex items-center space-x-4">
@@ -1595,7 +1593,7 @@ function Dashboard() {
 					<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
 						<UserPlus className="w-16 h-16 text-blue-600 mx-auto mb-4" />
 						<h2 className="text-2xl font-semibold text-gray-900 mb-4">Create New Profile</h2>
-						<p className="text-gray-600 mb-6">Add a new user profile to the KontactShare system</p>
+						<p className="text-gray-600 mb-6">Add a new user profile to the TapBoss system</p>
 						<button
 							onClick={() => setShowCreateModal(true)}
 							className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
