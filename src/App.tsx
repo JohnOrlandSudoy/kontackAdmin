@@ -68,7 +68,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
 			<div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
 				<div className="text-center mb-8">
-					<div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
+					<div className="w-24 h-24 mx-auto mb-4 bg-blue-700 rounded-full flex items-center justify-center p-2 shadow-lg">
 						<img src="/tapbos.png" alt="TapBoss Logo" className="w-full h-full object-contain" />
 					</div>
 					<h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
