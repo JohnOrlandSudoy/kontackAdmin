@@ -560,14 +560,19 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 								<QrCode className="w-5 h-5" /> QR Code
 							</h3>
 							<div className="flex flex-col items-center gap-4">
-								<img
-									src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&data=${encodeURIComponent(successData.profileLink)}`}
-									alt="Profile QR"
-									className="w-60 h-60 object-contain bg-white p-2 rounded-lg border border-gray-200"
-								/>
+								<div className="relative">
+									<img
+										src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&ecc=H&margin=0&data=${encodeURIComponent(successData.profileLink)}`}
+										alt="Profile QR"
+										className="w-60 h-60 object-contain bg-white p-2 rounded-lg border border-gray-200"
+									/>
+									<div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-black rounded-full p-1 shadow-md flex items-center justify-center border border-gray-100">
+										<img src="/tapbos.png" alt="Logo" className="w-full h-full object-contain" />
+									</div>
+								</div>
 								<div className="flex gap-2">
 									<a
-										href={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&data=${encodeURIComponent(successData.profileLink)}`}
+										href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&format=png&ecc=H&margin=0&data=${encodeURIComponent(successData.profileLink)}`}
 										download={`profile-${successData.uniqueCode}-qr.png`}
 										className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
 									>
