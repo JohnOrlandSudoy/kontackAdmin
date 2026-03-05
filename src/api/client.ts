@@ -84,6 +84,10 @@ export async function unbanProfile(uniqueCode: string) {
 	return request(`/admin/profiles/${encodeURIComponent(uniqueCode)}/unban`, { method: 'POST' }, true);
 }
 
+export async function toggleProStatus(uniqueCode: string) {
+	return request(`/admin/profiles/${encodeURIComponent(uniqueCode)}/toggle-pro`, { method: 'POST' }, true);
+}
+
 export async function getPublicProfile(uniqueCode: string) {
 	return request(`/profiles/${encodeURIComponent(uniqueCode)}`, { method: 'GET' });
 }

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { 
 	adminLogin, setToken, getToken, clearToken, createProfile, deleteProfile, 
-	banProfile, unbanProfile, getPublicProfile, getAllProfiles, getDashboardStats, 
+	banProfile, unbanProfile, toggleProStatus, getPublicProfile, getAllProfiles, getDashboardStats, 
 	bulkOperation, type ProfilePayload 
 } from './api/client';
 import { 
 	Users, UserPlus, Search, Filter, MoreHorizontal, Trash2, Ban, CheckCircle, 
 	Eye, Edit, LogOut, BarChart3, Calendar, Shield, AlertCircle, RefreshCw,
 	ChevronLeft, ChevronRight, Check, X, Wand2, Copy, CheckCircle2, Sparkles,
-	Mail, Phone, MapPin, Globe, Facebook, Instagram, Music, MessageCircle
+	Mail, Phone, MapPin, Globe, Facebook, Instagram, Music, MessageCircle, Crown,
+	QrCode, Download
 } from 'lucide-react';
 
 interface Profile {
@@ -29,6 +30,7 @@ interface Profile {
 	whatsapp_number: string;
 	website_link: string;
 	status: string;
+	is_pro?: boolean;
 	created_at: string;
 	updated_at: string;
 }
@@ -157,7 +159,8 @@ function ProfileTable({
 	onViewProfile,
 	onBanProfile,
 	onUnbanProfile,
-	onDeleteProfile
+	onDeleteProfile,
+	onTogglePro
 }: {
 	profiles: Profile[];
 	pagination: any;
@@ -171,6 +174,7 @@ function ProfileTable({
 	onBanProfile: (uniqueCode: string) => void;
 	onUnbanProfile: (uniqueCode: string) => void;
 	onDeleteProfile: (uniqueCode: string) => void;
+	onTogglePro: (uniqueCode: string) => void;
 }) {
 	return (
 		<div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -263,7 +267,10 @@ function ProfileTable({
 												)}
 											</div>
 											<div>
-												<div className="text-sm font-medium text-gray-900">{profile.full_name}</div>
+												<div className="text-sm font-medium text-gray-900 flex items-center">
+													{profile.full_name}
+													{profile.is_pro && <Crown className="w-3 h-3 text-yellow-500 ml-1 fill-current" />}
+												</div>
 												<div className="text-sm text-gray-500">{profile.job_title}</div>
 											</div>
 										</div>
@@ -292,6 +299,17 @@ function ProfileTable({
 												title="View Profile"
 											>
 												<Eye className="w-4 h-4" />
+											</button>
+											<button 
+												onClick={() => onTogglePro(profile.unique_code)}
+												className={`p-1 rounded transition-colors ${
+													profile.is_pro 
+														? 'text-yellow-600 hover:bg-yellow-100' 
+														: 'text-gray-400 hover:text-yellow-600 hover:bg-gray-100'
+												}`}
+												title={profile.is_pro ? "Remove Pro Access" : "Grant Pro Access"}
+											>
+												<Crown className={`w-4 h-4 ${profile.is_pro ? 'fill-current' : ''}`} />
 											</button>
 											{profile.status === 'active' ? (
 												<button 
@@ -534,6 +552,36 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 										</>
 									)}
 								</button>
+							</div>
+						</div>
+
+						<div className="bg-gray-50 rounded-lg p-4 mb-6">
+							<h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+								<QrCode className="w-5 h-5" /> QR Code
+							</h3>
+							<div className="flex flex-col items-center gap-4">
+								<img
+									src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&data=${encodeURIComponent(successData.profileLink)}`}
+									alt="Profile QR"
+									className="w-60 h-60 object-contain bg-white p-2 rounded-lg border border-gray-200"
+								/>
+								<div className="flex gap-2">
+									<a
+										href={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&data=${encodeURIComponent(successData.profileLink)}`}
+										download={`profile-${successData.uniqueCode}-qr.png`}
+										className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
+									>
+										<Download className="w-4 h-4" />
+										Download QR
+									</a>
+									<button
+										onClick={() => window.open(successData.profileLink, '_blank')}
+										className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+									>
+										<Globe className="w-4 h-4" />
+										Open Link
+									</button>
+								</div>
 							</div>
 						</div>
 
@@ -1346,6 +1394,17 @@ function Dashboard() {
 		}
 	};
 
+	const handleTogglePro = async (uniqueCode: string) => {
+		try {
+			await toggleProStatus(uniqueCode);
+			setMessage('Pro status updated successfully');
+			loadProfiles(pagination?.page || 1);
+		} catch (e: any) {
+			console.error('Failed to update pro status:', e);
+			setMessage(`Error: ${e.message || 'Failed to update pro status'}`);
+		}
+	};
+
 	useEffect(() => {
 		if (activeTab === 'dashboard') {
 			loadStats();
@@ -1527,6 +1586,7 @@ function Dashboard() {
 							onBanProfile={onBanProfile}
 							onUnbanProfile={onUnbanProfile}
 							onDeleteProfile={onDeleteProfile}
+							onTogglePro={handleTogglePro}
 						/>
 					</div>
 				)}
