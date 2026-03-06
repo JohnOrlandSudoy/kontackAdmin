@@ -50,7 +50,9 @@ async function request(path: string, options: RequestInit = {}, auth: boolean = 
 		try {
 			const err = await res.json();
 			message = err.error || message;
-		} catch {}
+		} catch {
+			void 0;
+		}
 		throw new Error(message);
 	}
 	try {

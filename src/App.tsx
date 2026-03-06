@@ -5,11 +5,11 @@ import {
 	bulkOperation, type ProfilePayload 
 } from './api/client';
 import { 
-	Users, UserPlus, Search, Filter, MoreHorizontal, Trash2, Ban, CheckCircle, 
-	Eye, Edit, LogOut, BarChart3, Calendar, Shield, AlertCircle, RefreshCw,
-	ChevronLeft, ChevronRight, Check, X, Wand2, Copy, CheckCircle2, Sparkles,
+	Users, UserPlus, Search, Trash2, Ban, CheckCircle, 
+	Eye, LogOut, BarChart3, Calendar, Shield, AlertCircle, RefreshCw,
+	ChevronLeft, ChevronRight, X, Wand2, Copy, CheckCircle2, Sparkles,
 	Mail, Phone, MapPin, Globe, Facebook, Instagram, Music, MessageCircle, Crown,
-	QrCode, Download
+	QrCode, Download, type LucideIcon
 } from 'lucide-react';
 
 interface Profile {
@@ -43,6 +43,92 @@ interface Stats {
 	weekProfiles: number;
 }
 
+type Pagination = {
+	page: number;
+	limit: number;
+	total: number;
+	pages: number;
+};
+
+type SuccessData = {
+	id: string;
+	pin: string;
+	uniqueCode: string;
+	profileLink: string;
+};
+
+type BulkAction = 'ban' | 'unban' | 'delete';
+
+type PublicProfile = ProfilePayload & {
+	status: string;
+	isPro?: boolean;
+	createdAt: string;
+	updatedAt: string;
+};
+
+const getErrorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+async function createBrandedQrPngBlob(data: string) {
+	const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&format=png&ecc=H&margin=0&data=${encodeURIComponent(data)}`;
+	const [qrRes, logoRes] = await Promise.all([fetch(qrUrl), fetch('/tapbos.png')]);
+	if (!qrRes.ok) throw new Error('Failed to generate QR');
+	if (!logoRes.ok) throw new Error('Failed to load logo');
+	const [qrBlob, logoBlob] = await Promise.all([qrRes.blob(), logoRes.blob()]);
+
+	const loadImage = async (blob: Blob) => {
+		const url = URL.createObjectURL(blob);
+		try {
+			const img = new Image();
+			img.decoding = 'async';
+			img.src = url;
+			await img.decode();
+			return img;
+		} finally {
+			URL.revokeObjectURL(url);
+		}
+	};
+
+	const [qrImg, logoImg] = await Promise.all([loadImage(qrBlob), loadImage(logoBlob)]);
+	const size = qrImg.naturalWidth || 800;
+	const canvas = document.createElement('canvas');
+	canvas.width = size;
+	canvas.height = size;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) throw new Error('Canvas not available');
+
+	ctx.drawImage(qrImg, 0, 0, size, size);
+
+	const logoSize = Math.round(size * 0.18);
+	const padding = Math.round(logoSize * 0.2);
+	const badgeSize = logoSize + padding * 2;
+	const cx = size / 2;
+	const cy = size / 2;
+
+	// Use a dark badge so a light logo remains visible in the export
+	ctx.fillStyle = '#000000';
+	ctx.beginPath();
+	ctx.arc(cx, cy, badgeSize / 2, 0, Math.PI * 2);
+	ctx.fill();
+
+	ctx.drawImage(logoImg, cx - logoSize / 2, cy - logoSize / 2, logoSize, logoSize);
+
+	return await new Promise<Blob>((resolve, reject) => {
+		canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Failed to export QR'))), 'image/png');
+	});
+}
+
+async function downloadBrandedQrPng(data: string, fileName: string) {
+	const blob = await createBrandedQrPngBlob(data);
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = fileName;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	URL.revokeObjectURL(url);
+}
+
 function Login({ onSuccess }: { onSuccess: () => void }) {
 	const [email, setEmail] = useState('admin@tapboss.card');
 	const [password, setPassword] = useState('Admin@123');
@@ -57,8 +143,8 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 			const token = await adminLogin(email, password);
 			setToken(token);
 			onSuccess();
-		} catch (err: any) {
-			setError(err?.message || 'Login failed');
+		} catch (err) {
+			setError(getErrorMessage(err) || 'Login failed');
 		} finally {
 			setLoading(false);
 		}
@@ -127,7 +213,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 function StatsCard({ title, value, icon: Icon, color, change }: {
 	title: string;
 	value: number;
-	icon: any;
+	icon: LucideIcon;
 	color: string;
 	change?: string;
 }) {
@@ -163,13 +249,13 @@ function ProfileTable({
 	onTogglePro
 }: {
 	profiles: Profile[];
-	pagination: any;
+	pagination: Pagination | null;
 	loading: boolean;
 	onPageChange: (page: number) => void;
 	selectedProfiles: string[];
 	onSelectProfile: (uniqueCode: string) => void;
 	onSelectAll: (selected: boolean) => void;
-	onBulkAction: (action: string) => void;
+	onBulkAction: (action: BulkAction) => void;
 	onViewProfile: (uniqueCode: string) => void;
 	onBanProfile: (uniqueCode: string) => void;
 	onUnbanProfile: (uniqueCode: string) => void;
@@ -399,7 +485,7 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 	});
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
-	const [successData, setSuccessData] = useState<any>(null);
+	const [successData, setSuccessData] = useState<SuccessData | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
 	const [generateFeedback, setGenerateFeedback] = useState<{[key: string]: boolean}>({});
 	const [copied, setCopied] = useState(false);
@@ -469,11 +555,11 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 		setError('');
 		try {
 			const result = await createProfile(form);
-			setSuccessData(result);
+			setSuccessData(result as SuccessData);
 			setShowSuccess(true);
 			onSuccess();
-		} catch (e: any) {
-			setError(e.message);
+		} catch (e) {
+			setError(getErrorMessage(e));
 		} finally {
 			setLoading(false);
 		}
@@ -571,14 +657,18 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 									</div>
 								</div>
 								<div className="flex gap-2">
-									<a
-										href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&format=png&ecc=H&margin=0&data=${encodeURIComponent(successData.profileLink)}`}
-										download={`profile-${successData.uniqueCode}-qr.png`}
+									<button
+										type="button"
+										onClick={() => {
+											void downloadBrandedQrPng(successData.profileLink, `profile-${successData.uniqueCode}-qr.png`).catch((e) => {
+												console.error(e);
+											});
+										}}
 										className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
 									>
 										<Download className="w-4 h-4" />
 										Download QR
-									</a>
+									</button>
 									<button
 										onClick={() => window.open(successData.profileLink, '_blank')}
 										className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1078,9 +1168,11 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 function ProfileViewModal({ isOpen, onClose, profile }: {
 	isOpen: boolean;
 	onClose: () => void;
-	profile: any;
+	profile: PublicProfile | null;
 }) {
 	if (!isOpen || !profile) return null;
+
+	const profileLink = `https://www.tapboss.cards/myprofile/${profile.uniqueCode}`;
 
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('en-US', {
@@ -1165,6 +1257,44 @@ function ProfileViewModal({ isOpen, onClose, profile }: {
 									}`}>
 										{profile.status}
 									</span>
+								</div>
+							</div>
+						</div>
+
+						<div className="space-y-4">
+							<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">QR Code</h3>
+							<div className="flex flex-col items-center gap-4">
+								<div className="relative">
+									<img
+										src={`https://api.qrserver.com/v1/create-qr-code/?size=320x320&format=png&ecc=H&margin=0&data=${encodeURIComponent(profileLink)}`}
+										alt="Profile QR"
+										className="w-72 h-72 object-contain bg-white p-2 rounded-lg border border-gray-200"
+									/>
+									<div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-black rounded-full p-1 shadow-md flex items-center justify-center border border-gray-100">
+										<img src="/tapbos.png" alt="Logo" className="w-full h-full object-contain" />
+									</div>
+								</div>
+								<div className="flex gap-2">
+									<button
+										type="button"
+										onClick={() => {
+											void downloadBrandedQrPng(profileLink, `profile-${profile.uniqueCode}-qr.png`).catch((e) => {
+												console.error(e);
+											});
+										}}
+										className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
+									>
+										<Download className="w-4 h-4" />
+										Download QR
+									</button>
+									<button
+										type="button"
+										onClick={() => window.open(profileLink, '_blank')}
+										className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+									>
+										<Globe className="w-4 h-4" />
+										Open Link
+									</button>
 								</div>
 							</div>
 						</div>
@@ -1274,7 +1404,7 @@ function ProfileViewModal({ isOpen, onClose, profile }: {
 function Dashboard() {
 	const [activeTab, setActiveTab] = useState<'dashboard' | 'profiles' | 'create'>('dashboard');
 	const [profiles, setProfiles] = useState<Profile[]>([]);
-	const [pagination, setPagination] = useState<any>(null);
+	const [pagination, setPagination] = useState<Pagination | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [stats, setStats] = useState<Stats | null>(null);
 	const [search, setSearch] = useState('');
@@ -1282,7 +1412,7 @@ function Dashboard() {
 	const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [message, setMessage] = useState('');
-	const [viewingProfile, setViewingProfile] = useState<any | null>(null);
+	const [viewingProfile, setViewingProfile] = useState<PublicProfile | null>(null);
 	const [showProfileModal, setShowProfileModal] = useState(false);
 
 	const logout = () => { clearToken(); window.location.reload(); };
@@ -1290,11 +1420,11 @@ function Dashboard() {
 	const onViewProfile = async (uniqueCode: string) => {
 		try {
 			const profile = await getPublicProfile(uniqueCode);
-			setViewingProfile(profile);
+			setViewingProfile(profile as PublicProfile);
 			setShowProfileModal(true);
-		} catch (e: any) {
+		} catch (e) {
 			console.error('Failed to view profile:', e);
-			setMessage(`Error: ${e.message || 'Failed to view profile'}`);
+			setMessage(`Error: ${getErrorMessage(e) || 'Failed to view profile'}`);
 		}
 	};
 	
@@ -1303,9 +1433,9 @@ function Dashboard() {
 			await banProfile(uniqueCode);
 			setMessage('Profile banned successfully');
 			loadProfiles(pagination?.page || 1);
-		} catch (e: any) {
+		} catch (e) {
 			console.error('Failed to ban profile:', e);
-			setMessage(`Error: ${e.message || 'Failed to ban profile'}`);
+			setMessage(`Error: ${getErrorMessage(e) || 'Failed to ban profile'}`);
 		}
 	};
 	
@@ -1314,22 +1444,9 @@ function Dashboard() {
 			await unbanProfile(uniqueCode);
 			setMessage('Profile unbanned successfully');
 			loadProfiles(pagination?.page || 1);
-		} catch (e: any) {
+		} catch (e) {
 			console.error('Failed to unban profile:', e);
-			setMessage(`Error: ${e.message || 'Failed to unban profile'}`);
-		}
-	};
-	
-	async (uniqueCode: string) => {
-		if (confirm('Are you sure you want to delete this profile? This action cannot be undone.')) {
-			try {
-				await deleteProfile(uniqueCode);
-				setMessage('Profile deleted successfully');
-				loadProfiles(pagination?.page || 1);
-			} catch (e: any) {
-				console.error('Failed to delete profile:', e);
-				setMessage(`Error: ${e.message || 'Failed to delete profile'}`);
-			}
+			setMessage(`Error: ${getErrorMessage(e) || 'Failed to unban profile'}`);
 		}
 	};
 
@@ -1359,42 +1476,16 @@ function Dashboard() {
 			setLoading(false);
 		}
 	};
-
-	const handleViewProfile = (uniqueCode: string) => {
-		window.open(`https://www.tapboss.cards/myprofile/${uniqueCode}`, '_blank');
-	};
-	
-	const handleBanProfile = async (uniqueCode: string) => {
-		try {
-			await banProfile(uniqueCode);
-			setMessage('Profile banned successfully');
-			loadProfiles(pagination?.currentPage || 1);
-		} catch (e: any) {
-			console.error('Failed to ban profile:', e);
-			setMessage(`Error: ${e.message || 'Failed to ban profile'}`);
-		}
-	};
-	
-	async (uniqueCode: string) => {
-		try {
-			await unbanProfile(uniqueCode);
-			setMessage('Profile unbanned successfully');
-			loadProfiles(pagination?.currentPage || 1);
-		} catch (e: any) {
-			console.error('Failed to unban profile:', e);
-			setMessage(`Error: ${e.message || 'Failed to unban profile'}`);
-		}
-	};
 	
 	const onDeleteProfile = async (uniqueCode: string) => {
 		if (confirm('Are you sure you want to delete this profile? This action cannot be undone.')) {
 			try {
 				await deleteProfile(uniqueCode);
 				setMessage('Profile deleted successfully');
-				loadProfiles(pagination?.currentPage || 1);
-			} catch (e: any) {
+				loadProfiles(pagination?.page || 1);
+			} catch (e) {
 				console.error('Failed to delete profile:', e);
-				setMessage(`Error: ${e.message || 'Failed to delete profile'}`);
+				setMessage(`Error: ${getErrorMessage(e) || 'Failed to delete profile'}`);
 			}
 		}
 	};
@@ -1404,9 +1495,9 @@ function Dashboard() {
 			await toggleProStatus(uniqueCode);
 			setMessage('Pro status updated successfully');
 			loadProfiles(pagination?.page || 1);
-		} catch (e: any) {
+		} catch (e) {
 			console.error('Failed to update pro status:', e);
-			setMessage(`Error: ${e.message || 'Failed to update pro status'}`);
+			setMessage(`Error: ${getErrorMessage(e) || 'Failed to update pro status'}`);
 		}
 	};
 
@@ -1430,16 +1521,17 @@ function Dashboard() {
 		setSelectedProfiles(selected ? profiles.map(p => p.unique_code) : []);
 	};
 
-	const handleBulkAction = async (action: string) => {
+	const handleBulkAction = async (action: BulkAction) => {
 		if (selectedProfiles.length === 0) return;
 		
 		try {
-			await bulkOperation(action as any, selectedProfiles);
-			setMessage(`${selectedProfiles.length} profiles ${action}ed successfully`);
+			await bulkOperation(action, selectedProfiles);
+			const actionLabel = action === 'ban' ? 'banned' : action === 'unban' ? 'unbanned' : 'deleted';
+			setMessage(`${selectedProfiles.length} profiles ${actionLabel} successfully`);
 			setSelectedProfiles([]);
 			loadProfiles(pagination?.page || 1);
-		} catch (e: any) {
-			setMessage(`Error: ${e.message}`);
+		} catch (e) {
+			setMessage(`Error: ${getErrorMessage(e)}`);
 		}
 	};
 
@@ -1484,7 +1576,7 @@ function Dashboard() {
 						].map((tab) => (
 							<button
 								key={tab.id}
-								onClick={() => setActiveTab(tab.id as any)}
+								onClick={() => setActiveTab(tab.id as typeof activeTab)}
 								className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
 									activeTab === tab.id
 										? 'border-blue-500 text-blue-600'
