@@ -507,11 +507,11 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 		const month = String(today.getMonth() + 1).padStart(2, '0');
 		const day = String(today.getDate()).padStart(2, '0');
 		const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-		return `${year}${month}${day}-0000-${random}`;
+		return `${year}${month}${day}0000${random}`;
 	};
 
 	const generatePin = () => {
-		return Math.floor(10000 + Math.random() * 90000).toString();
+		return Math.floor(100000 + Math.random() * 900000).toString();
 	};
 
 	const handleGenerate = (field: 'id' | 'pin' | 'uniqueCode') => {
@@ -747,7 +747,7 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 										<div className="flex-1">
 											<label className="block text-lg font-semibold text-gray-800">ID Card</label>
 											<p className="text-sm text-gray-500">Unique identifier for the user</p>
-											<span className="text-xs text-gray-400 font-mono mt-1 block">Format: YYYYMMDD-0000-XXXX</span>
+											<span className="text-xs text-gray-400 font-mono mt-1 block">Format: YYYYMMDD0000XXXX</span>
 										</div>
 									</div>
 									<div className="flex space-x-3">
@@ -819,8 +819,8 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 										</div>
 										<div className="flex-1">
 											<label className="block text-lg font-semibold text-gray-800">PIN</label>
-											<p className="text-sm text-gray-500">5-digit security code for authentication</p>
-											<span className="text-xs text-gray-400 font-mono mt-1 block">Format: 00000-99999</span>
+											<p className="text-sm text-gray-500">6-digit security code for authentication</p>
+											<span className="text-xs text-gray-400 font-mono mt-1 block">Format: 000000–999999</span>
 										</div>
 									</div>
 									<div className="flex space-x-3">
@@ -832,7 +832,7 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 												value={form.pin}
 												onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
 												placeholder="Auto-generated"
-												maxLength={5}
+												maxLength={6}
 											/>
 											<div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
 												{form.pin && (
