@@ -1361,7 +1361,7 @@ function Dashboard() {
 	};
 
 	const handleViewProfile = (uniqueCode: string) => {
-		window.open(`https://client-test-tapboss.vercel.app/myprofile/${uniqueCode}`, '_blank');
+		window.open(`https://www.tapboss.cards/myprofile/${uniqueCode}`, '_blank');
 	};
 	
 	const handleBanProfile = async (uniqueCode: string) => {
