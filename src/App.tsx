@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { 
-	adminLogin, setToken, getToken, clearToken, createProfile, deleteProfile, 
+	adminLogin, setToken, getToken, clearToken, createProfile, updateProfile, deleteProfile, 
 	banProfile, unbanProfile, toggleProStatus, getPublicProfile, getAllProfiles, getDashboardStats, 
 	bulkOperation, type ProfilePayload 
 } from './api/client';
 import { 
 	Users, UserPlus, Search, Trash2, Ban, CheckCircle, 
-	Eye, LogOut, BarChart3, Calendar, Shield, AlertCircle, RefreshCw,
+	Eye, Edit, LogOut, BarChart3, Calendar, Shield, AlertCircle, RefreshCw,
 	ChevronLeft, ChevronRight, X, Wand2, Copy, CheckCircle2, Sparkles,
 	Mail, Phone, MapPin, Globe, Facebook, Instagram, Music, MessageCircle, Crown,
 	QrCode, Download, type LucideIcon
@@ -246,7 +246,8 @@ function ProfileTable({
 	onBanProfile,
 	onUnbanProfile,
 	onDeleteProfile,
-	onTogglePro
+	onTogglePro,
+	onEditProfile
 }: {
 	profiles: Profile[];
 	pagination: Pagination | null;
@@ -261,6 +262,7 @@ function ProfileTable({
 	onUnbanProfile: (uniqueCode: string) => void;
 	onDeleteProfile: (uniqueCode: string) => void;
 	onTogglePro: (uniqueCode: string) => void;
+	onEditProfile: (profile: Profile) => void;
 }) {
 	return (
 		<div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -385,6 +387,13 @@ function ProfileTable({
 												title="View Profile"
 											>
 												<Eye className="w-4 h-4" />
+											</button>
+											<button 
+												onClick={() => onEditProfile(profile)}
+												className="p-1 text-indigo-600 hover:bg-indigo-100 rounded"
+												title="Edit Profile"
+											>
+												<Edit className="w-4 h-4" />
 											</button>
 											<button 
 												onClick={() => onTogglePro(profile.unique_code)}
@@ -1165,6 +1174,336 @@ function CreateProfileModal({ isOpen, onClose, onSuccess }: {
 	);
 }
 
+function EditProfileModal({ isOpen, onClose, onSuccess, profile }: {
+	isOpen: boolean;
+	onClose: () => void;
+	onSuccess: () => void;
+	profile: Profile | null;
+}) {
+	const [form, setForm] = useState<ProfilePayload>({
+		id: '',
+		pin: '',
+		uniqueCode: '',
+		profilePhoto: '',
+		fullName: '',
+		email: '',
+		jobTitle: '',
+		companyName: '',
+		mobilePrimary: '',
+		landlineNumber: '',
+		address: '',
+		facebookLink: '',
+		instagramLink: '',
+		tiktokLink: '',
+		whatsappNumber: '',
+		websiteLink: '',
+	});
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState('');
+
+	useEffect(() => {
+		if (profile) {
+			setForm({
+				id: profile.id,
+				pin: profile.pin,
+				uniqueCode: profile.unique_code,
+				profilePhoto: profile.profile_photo || '/uploads/tapbos.png',
+				fullName: profile.full_name,
+				email: profile.email,
+				jobTitle: profile.job_title,
+				companyName: profile.company_name,
+				mobilePrimary: profile.mobile_primary,
+				landlineNumber: profile.landline_number,
+				address: profile.address,
+				facebookLink: profile.facebook_link,
+				instagramLink: profile.instagram_link,
+				tiktokLink: profile.tiktok_link,
+				whatsappNumber: profile.whatsapp_number,
+				websiteLink: profile.website_link,
+			});
+		}
+	}, [profile]);
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!profile) return;
+		
+		setLoading(true);
+		setError('');
+		try {
+			await updateProfile(profile.unique_code, form);
+			onSuccess();
+			onClose();
+		} catch (e) {
+			setError(getErrorMessage(e));
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	if (!isOpen || !profile) return null;
+
+	return (
+		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+			<div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+				<div className="p-6 border-b border-gray-200">
+					<div className="flex items-center justify-between">
+						<h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
+						<button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+							<X className="w-5 h-5" />
+						</button>
+					</div>
+				</div>
+				
+				<form onSubmit={handleSubmit} className="p-6 space-y-6">
+					{error && (
+						<div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-2">
+							<AlertCircle className="w-5 h-5 text-red-600" />
+							<span className="text-red-800 text-sm">{error}</span>
+						</div>
+					)}
+					
+					{/* Credentials Section (Read Only) */}
+					<div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
+						<div className="flex items-center space-x-3 mb-6">
+							<div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center">
+								<Shield className="w-5 h-5 text-white" />
+							</div>
+							<h3 className="text-lg font-semibold text-gray-900">Credentials (Read Only)</h3>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">ID Card</label>
+								<input
+									className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+									value={form.id}
+									readOnly
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">PIN</label>
+								<input
+									className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+									value={form.pin}
+									readOnly
+								/>
+							</div>
+							<div className="md:col-span-2">
+								<label className="block text-sm font-medium text-gray-700 mb-2">Unique Code</label>
+								<input
+									className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+									value={form.uniqueCode}
+									readOnly
+								/>
+							</div>
+						</div>
+					</div>
+
+					{/* Personal Information */}
+					<div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 mb-6 border border-green-200 shadow-sm">
+						<div className="flex items-center space-x-3 mb-6">
+							<div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+								<Users className="w-5 h-5 text-white" />
+							</div>
+							<h3 className="text-lg font-semibold text-green-900">Personal Information</h3>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div className="md:col-span-2">
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Users className="w-4 h-4 text-green-600" />
+									<span>Full Name</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white shadow-sm"
+									value={form.fullName}
+									onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
+									required
+								/>
+							</div>
+							<div className="md:col-span-2">
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Mail className="w-4 h-4 text-green-600" />
+									<span>Email Address</span>
+								</label>
+								<input
+									type="email"
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white shadow-sm"
+									value={form.email}
+									onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Users className="w-4 h-4 text-green-600" />
+									<span>Job Title</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white shadow-sm"
+									value={form.jobTitle}
+									onChange={e => setForm(f => ({ ...f, jobTitle: e.target.value }))}
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Users className="w-4 h-4 text-green-600" />
+									<span>Company Name</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white shadow-sm"
+									value={form.companyName}
+									onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))}
+									required
+								/>
+							</div>
+						</div>
+					</div>
+
+					{/* Contact Information */}
+					<div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 mb-6 border border-yellow-200 shadow-sm">
+						<div className="flex items-center space-x-3 mb-6">
+							<div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+								<Phone className="w-5 h-5 text-white" />
+							</div>
+							<h3 className="text-lg font-semibold text-yellow-900">Contact Information</h3>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Phone className="w-4 h-4 text-yellow-600" />
+									<span>Mobile Primary</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white shadow-sm"
+									value={form.mobilePrimary}
+									onChange={e => setForm(f => ({ ...f, mobilePrimary: e.target.value }))}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Phone className="w-4 h-4 text-yellow-600" />
+									<span>Landline Number</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white shadow-sm"
+									value={form.landlineNumber}
+									onChange={e => setForm(f => ({ ...f, landlineNumber: e.target.value }))}
+								/>
+							</div>
+							<div className="md:col-span-2">
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<MapPin className="w-4 h-4 text-yellow-600" />
+									<span>Address</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white shadow-sm"
+									value={form.address}
+									onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+								/>
+							</div>
+						</div>
+					</div>
+
+					{/* Social Media Links */}
+					<div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 mb-6 border border-purple-200 shadow-sm">
+						<div className="flex items-center space-x-3 mb-6">
+							<div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+								<Globe className="w-5 h-5 text-white" />
+							</div>
+							<h3 className="text-lg font-semibold text-purple-900">Social Media Links</h3>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Facebook className="w-4 h-4 text-purple-600" />
+									<span>Facebook Link</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white shadow-sm"
+									value={form.facebookLink}
+									onChange={e => setForm(f => ({ ...f, facebookLink: e.target.value }))}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Instagram className="w-4 h-4 text-purple-600" />
+									<span>Instagram Link</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white shadow-sm"
+									value={form.instagramLink}
+									onChange={e => setForm(f => ({ ...f, instagramLink: e.target.value }))}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Music className="w-4 h-4 text-purple-600" />
+									<span>TikTok Link</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white shadow-sm"
+									value={form.tiktokLink}
+									onChange={e => setForm(f => ({ ...f, tiktokLink: e.target.value }))}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<MessageCircle className="w-4 h-4 text-purple-600" />
+									<span>WhatsApp Number</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white shadow-sm"
+									value={form.whatsappNumber}
+									onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+								/>
+							</div>
+							<div className="md:col-span-2">
+								<label className="block text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+									<Globe className="w-4 h-4 text-purple-600" />
+									<span>Website Link</span>
+								</label>
+								<input
+									className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white shadow-sm"
+									value={form.websiteLink}
+									onChange={e => setForm(f => ({ ...f, websiteLink: e.target.value }))}
+								/>
+							</div>
+						</div>
+					</div>
+					
+					<div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+						<button
+							type="button"
+							onClick={onClose}
+							className="px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all font-medium shadow-sm hover:shadow-md"
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							disabled={loading}
+							className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+						>
+							{loading ? (
+								<>
+									<RefreshCw className="w-5 h-5 animate-spin" />
+									<span>Saving...</span>
+								</>
+							) : (
+								<>
+									<CheckCircle className="w-5 h-5" />
+									<span>Save Changes</span>
+								</>
+							)}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	);
+}
+
 function ProfileViewModal({ isOpen, onClose, profile }: {
 	isOpen: boolean;
 	onClose: () => void;
@@ -1414,6 +1753,8 @@ function Dashboard() {
 	const [message, setMessage] = useState('');
 	const [viewingProfile, setViewingProfile] = useState<PublicProfile | null>(null);
 	const [showProfileModal, setShowProfileModal] = useState(false);
+	const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+	const [showEditModal, setShowEditModal] = useState(false);
 
 	const logout = () => { clearToken(); window.location.reload(); };
 	
@@ -1428,6 +1769,11 @@ function Dashboard() {
 		}
 	};
 	
+	const onEditProfile = (profile: Profile) => {
+		setEditingProfile(profile);
+		setShowEditModal(true);
+	};
+
 	const onBanProfile = async (uniqueCode: string) => {
 		try {
 			await banProfile(uniqueCode);
@@ -1637,6 +1983,49 @@ function Dashboard() {
 								color="bg-purple-500"
 							/>
 						</div>
+
+						{/* Universal QR Code Section */}
+						<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+							<h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+								<QrCode className="w-5 h-5" />
+								Universal QR Code
+							</h3>
+							<div className="flex flex-col md:flex-row items-center gap-8">
+								<div className="relative group">
+									<div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+									<div className="relative">
+										<img
+											src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&ecc=H&margin=0&data=${encodeURIComponent('https://www.tapboss.cards')}`}
+											alt="Universal QR"
+											className="w-64 h-64 object-contain bg-white p-2 rounded-lg border border-gray-200"
+										/>
+										<div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-black rounded-full p-1 shadow-md flex items-center justify-center border border-gray-100">
+											<img src="/tapbos.png" alt="Logo" className="w-full h-full object-contain" />
+										</div>
+									</div>
+								</div>
+								<div className="flex flex-col gap-4 items-center md:items-start text-center md:text-left">
+									<div>
+										<h4 className="text-xl font-bold text-gray-900">TapBoss Universal Link</h4>
+										<p className="text-gray-500 mt-1">Scan this QR code to visit the main website.</p>
+										<a href="https://www.tapboss.cards" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-medium mt-1 inline-block">
+											https://www.tapboss.cards
+										</a>
+									</div>
+									<button
+										onClick={() => {
+											void downloadBrandedQrPng('https://www.tapboss.cards', 'tapboss-universal-qr.png').catch((e) => {
+												console.error(e);
+											});
+										}}
+										className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+									>
+										<Download className="w-5 h-5" />
+										<span>Download Branded QR</span>
+									</button>
+								</div>
+							</div>
+						</div>
 					</div>
 				)}
 
@@ -1678,6 +2067,7 @@ function Dashboard() {
 							onSelectAll={handleSelectAll}
 							onBulkAction={handleBulkAction}
 							onViewProfile={onViewProfile}
+							onEditProfile={onEditProfile}
 							onBanProfile={onBanProfile}
 							onUnbanProfile={onUnbanProfile}
 							onDeleteProfile={onDeleteProfile}
@@ -1705,6 +2095,16 @@ function Dashboard() {
 				isOpen={showCreateModal}
 				onClose={() => setShowCreateModal(false)}
 				onSuccess={handleCreateSuccess}
+			/>
+
+			<EditProfileModal
+				isOpen={showEditModal}
+				onClose={() => setShowEditModal(false)}
+				onSuccess={() => {
+					loadProfiles(pagination?.page || 1);
+					setMessage('Profile updated successfully');
+				}}
+				profile={editingProfile}
 			/>
 
 			<ProfileViewModal

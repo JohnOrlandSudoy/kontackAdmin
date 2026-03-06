@@ -74,6 +74,10 @@ export async function createProfile(payload: ProfilePayload) {
 	return request('/profiles', { method: 'POST', body: JSON.stringify(payload) }, true);
 }
 
+export async function updateProfile(uniqueCode: string, payload: Partial<ProfilePayload>) {
+	return request(`/profiles/${encodeURIComponent(uniqueCode)}`, { method: 'PUT', body: JSON.stringify(payload) }, true);
+}
+
 export async function deleteProfile(uniqueCode: string) {
 	return request(`/profiles/${encodeURIComponent(uniqueCode)}`, { method: 'DELETE' }, true);
 }
